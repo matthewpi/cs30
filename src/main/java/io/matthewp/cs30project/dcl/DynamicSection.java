@@ -14,7 +14,12 @@ import java.util.Map;
  */
 public final class DynamicSection {
     @Getter private final String key;
+    @Getter private final int lineNumber;
     @Getter private final Map<String, DynamicValue> values;
+
+    public DynamicSection(@NonNull final String key) {
+        this(key, 0);
+    }
 
     /**
      * DynamicSection(String)
@@ -23,8 +28,9 @@ public final class DynamicSection {
      *
      * @param key Key
      */
-    public DynamicSection(@NonNull final String key) {
+    public DynamicSection(@NonNull final String key, final int lineNumber) {
         this.key = key;
+        this.lineNumber = lineNumber;
         this.values = new LinkedHashMap<>();
     }
 

@@ -1,5 +1,9 @@
 package io.matthewp.cs30project;
 
+import lombok.SneakyThrows;
+
+import java.io.IOException;
+
 /**
  * Main
  *
@@ -14,6 +18,7 @@ public final class Main {
      *
      * @param args Command Line arguments
      */
+    @SneakyThrows(IOException.class)
     public static void main(final String[] args) {
         //final InputProvider provider = new ConsoleProvider();
         //final InputProvider provider = new RedisProvider(new RedisCredentials("sea1.stacktrace.fun", 6379, ""));
@@ -21,7 +26,12 @@ public final class Main {
         //provider.clean();
 
         final Config config = new Config();
-        config.debug();
+        //config.debug();
+        config.set("integer", "27017");
+        config.set("anotherSection.value", 3);
+        config.set("anotherSection.embeddedSection.value", 2);
+        config.set("anotherSection.embeddedSection.anotherEmbeddedSection.value", 1);
+        config.save();
 
         System.exit(0);
     }

@@ -5,12 +5,13 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.SneakyThrows;
 
-import java.io.File;
-import java.io.InputStream;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * DynamicConfiguration
@@ -18,6 +19,8 @@ import java.util.Map;
  * ?
  */
 public abstract class DynamicConfiguration {
+    public static final boolean DEBUG = true;
+
     @Getter(AccessLevel.PACKAGE) private final File file;
     @Getter(AccessLevel.PACKAGE) private final DynamicLoader2 loader;
     @Getter(AccessLevel.PACKAGE) private final DynamicSection root;
@@ -164,6 +167,25 @@ public abstract class DynamicConfiguration {
     }
 
     /**
+     * set(String, Object)
+     *
+     * Updates a value's value.
+     *
+     * @param key Key
+     * @param newValue New Value
+     */
+    public void set(@NonNull final String key, @NonNull final Object newValue) {
+        final DynamicValue value = this.getValue(key);
+
+        if(value == null) {
+            // TODO: Create new value add update all line numbers after it.
+            return;
+        }
+
+        value.set(newValue);
+    }
+
+    /**
      * getValue(String)
      *
      * Gets a {@link DynamicValue}.
@@ -220,5 +242,92 @@ public abstract class DynamicConfiguration {
             System.out.println(sectionIndent + "}");
             System.out.println();
         }
+    }
+
+    /**
+     * save()
+     *
+     * Saves the configuration file with any modified values.
+     *
+     * @throws IOException File Exception
+     */
+    public void save() throws IOException {
+        // Create a map to store the lines we need to replace. (We use a LinkedHashMap because order matters)
+        final Map<Integer, String> replacements = new LinkedHashMap<>();
+
+        // Loop through all root values.
+        this.getRoot().getValues().forEach((key, value) -> {
+            // Skip over values that have not been modified.
+            if(!value.isModified()) {
+                return;
+            }
+
+            // Update the value's modified state so we don't keep saving it.
+            value.setModified(false);
+
+            // Put the new line in the replacements list.
+            replacements.put(value.getLineNumber(), key + ": " + ((value.getType() == DynamicValue.ValueType.STRING) ? "\"" + value.value() + "\"" : value.value()));
+        });
+
+        // Loop through all configuration sections.
+        this.getSections().forEach((sectionName, section) -> {
+            section.getValues().forEach((key, value) -> {
+                // Skip over values that have not been modified.
+                if(!value.isModified()) {
+                    return;
+                }
+
+                // Update the value's modified state so we don't keep saving it.
+                value.setModified(false);
+
+                // Skip over list types because our save handler only supports single line values.
+                if(value.getType() == DynamicValue.ValueType.STRING_LIST || value.getType() == DynamicValue.ValueType.INTEGER_LIST) {
+                    return;
+                }
+
+                // Get the indent for the line. (This is a fancy way of repeating a string, there is probably a better way to do this.)
+                final String indent = String.join(
+                        "",
+                        Collections.nCopies(
+                                (sectionName.length() - sectionName.replace(".", "").length()) + 1,
+                                "    "
+                        )
+                );
+
+                // Get the value part of the line, add quotes if the type is a string.
+                final String lineValue = ((value.getType() == DynamicValue.ValueType.STRING) ? "\"" + value.value() + "\"" : value.value());
+
+                // Put the new line in the replacements list.
+                replacements.put(value.getLineNumber(), indent + key + ": " + lineValue);
+            });
+        });
+
+        // Check if there are no replacements.
+        if(replacements.size() < 1) {
+            if(DEBUG) {
+                System.out.println("[DCL] Skipping over file save because no values were modified.");
+            }
+            return;
+        }
+
+        // Get the path for our file due to the argument Files#readAllLines takes.
+        final Path path = Paths.get(this.getFile().getPath());
+
+        // Get an array of the lines from our config file.
+        final List<String> lines = Files.readAllLines(path, StandardCharsets.UTF_8);
+
+        // Loop through our replacements.
+        replacements.forEach((key, value) -> {
+            if(DEBUG) {
+                System.out.println("[DCL] Replacing line #" + key);
+            }
+
+            // Update the line in the lines array (key - 1 is because a list index starts at 0 instead of 1).
+            lines.set(key - 1, value);
+        });
+
+        // Update the file.
+        // TODO: Write to actual config file and not a test file.
+        Files.write(Paths.get(this.getFile().getPath() + ".updated"), lines, StandardCharsets.UTF_8);
     }
 }

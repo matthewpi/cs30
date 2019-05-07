@@ -22,7 +22,7 @@ import java.util.regex.Pattern;
  * TODO: Document code
  */
 public final class DynamicLoader2 {
-    private static final boolean DEBUG = true;
+    private static final boolean DEBUG = DynamicConfiguration.DEBUG;
     private static final Pattern UNICODE_PATTERN = Pattern.compile("\\\\u(\\p{XDigit}{4})");
 
     @Getter private final File file;
@@ -73,7 +73,7 @@ public final class DynamicLoader2 {
                 }
 
                 final String sectionName = ((currentSection.getKey().length() == 0) ? "" : currentSection.getKey() + ".") + line.substring(0, line.length() - 2);
-                currentSection = (this.getSections().get(sectionName) == null) ? new DynamicSection(sectionName) : this.getSections().get(sectionName);
+                currentSection = (this.getSections().get(sectionName) == null) ? new DynamicSection(sectionName, lineNumber) : this.getSections().get(sectionName);
                 this.getSections().putIfAbsent(sectionName, currentSection);
                 continue;
             }
