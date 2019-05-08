@@ -11,7 +11,7 @@ redis {
     password: "yay"
 }
 
-anotherValue: "this is fun!"
+//anotherValue: "this is fun!"
 
 anotherSection {
     value: "1"

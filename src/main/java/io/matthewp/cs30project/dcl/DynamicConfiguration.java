@@ -6,6 +6,7 @@ import lombok.NonNull;
 import lombok.SneakyThrows;
 
 import java.io.*;
+import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -175,14 +176,107 @@ public abstract class DynamicConfiguration {
      * @param newValue New Value
      */
     public void set(@NonNull final String key, @NonNull final Object newValue) {
-        final DynamicValue value = this.getValue(key);
+        DynamicValue value = this.getValue(key);
 
         if(value == null) {
             // TODO: Create new value add update all line numbers after it.
+            int lineNumber;
+            final DynamicSection section;
+
+            if(key.contains(".")) {
+                section = this.getSection(key.substring(0, key.lastIndexOf(".")));
+            } else {
+                section = this.getRoot();
+            }
+
+            if(section == null) {
+                // Debug logging.
+                if(DEBUG) {
+                    System.out.println("[DCL] Cannot create new value, section does not exist.");
+                }
+
+                return;
+            }
+
+            lineNumber = this.getTailLineNumber(section.getValues(), section.getLineNumber());
+            System.out.println("[DCL] set(): " + lineNumber);
+
+            // Increment the line number because it is an existing line, not the line we need to place the new value on.
+            lineNumber++;
+
+            final int finalLine = lineNumber;
+
+            // Loop through all root values.
+            this.getRoot().getValues().values().forEach((val) -> {
+                if(val.getLineNumber() < finalLine) {
+                    return;
+                }
+
+                val.setModified(true);
+                val.setLineNumber(val.getLineNumber() + 1);
+            });
+
+            this.getSections().forEach((sectName, sect) -> {
+                if(sect.getLineNumber() >= finalLine) {
+                    System.out.println(sectName + ": " + sect.getEndLineNumber());
+                    sect.setModified(true);
+                    sect.setLineNumber(sect.getLineNumber() + 1);
+                    sect.setEndLineNumber(sect.getEndLineNumber() + 1);
+                } else if(sect.getEndLineNumber() >= finalLine) {
+                    sect.setModified(true);
+                    sect.setEndLineNumber(sect.getEndLineNumber() + 1);
+                }
+
+                sect.getValues().values().forEach((val) -> {
+                    if(val.getLineNumber() < finalLine) {
+                        return;
+                    }
+
+                    val.setModified(true);
+                    val.setLineNumber(val.getLineNumber() + 1);
+                });
+            });
+
+            value = new DynamicValue(newValue, null, lineNumber);
+            value.setModified(true);
+
+            if(key.contains(".")) {
+                section.getValues().put(key.substring(key.lastIndexOf(".") + 1), value);
+            } else {
+                section.getValues().put(key, value);
+            }
+
             return;
         }
 
         value.set(newValue);
+    }
+
+    private int getTailLineNumber(@NonNull final Map<String, DynamicValue> map, final int sectionLineNumber) {
+        int lineNumber = 0;
+
+        System.out.println("[DCL] Map Size: " + map.size());
+
+        if(map.size() == 0) {
+            return sectionLineNumber;
+        }
+
+        try {
+            // We are using reflection to access the tail of the map, this is stored by a LinkedHashMap but not publicly accessible.
+            final Field field = map.getClass().getDeclaredField("tail");
+            field.setAccessible(true);
+
+            // This line could probably be a lot safer and could potentially throw a NullPointerException.
+            final Map.Entry<String, DynamicValue> value = (Map.Entry<String, DynamicValue>) field.get(map);
+            lineNumber = value.getValue().getLineNumber();
+        } catch(final Exception ignored) {
+            // Fall back for getting the last item in an array/set.
+            for(final DynamicValue val : map.values()) {
+                lineNumber = val.getLineNumber();
+            }
+        }
+
+        return lineNumber;
     }
 
     /**
@@ -271,6 +365,22 @@ public abstract class DynamicConfiguration {
 
         // Loop through all configuration sections.
         this.getSections().forEach((sectionName, section) -> {
+            if(section.isModified()) {
+                final String indent1 = String.join(
+                        "",
+                        Collections.nCopies(
+                                (sectionName.length() - sectionName.replace(".", "").length()),
+                                "    "
+                        )
+                );
+
+                replacements.put(section.getLineNumber() - 1, "");
+                replacements.put(section.getLineNumber(), indent1 + sectionName + " {");
+                replacements.put(section.getEndLineNumber(), indent1 + "}");
+                System.out.println("Section End: " + section.getEndLineNumber());
+                section.setModified(false);
+            }
+
             section.getValues().forEach((key, value) -> {
                 // Skip over values that have not been modified.
                 if(!value.isModified()) {
@@ -318,12 +428,21 @@ public abstract class DynamicConfiguration {
 
         // Loop through our replacements.
         replacements.forEach((key, value) -> {
+            // Debug logging.
             if(DEBUG) {
                 System.out.println("[DCL] Replacing line #" + key);
             }
 
             // Update the line in the lines array (key - 1 is because a list index starts at 0 instead of 1).
-            lines.set(key - 1, value);
+            if(key - 1 >= lines.size()) {
+                while(lines.size() < key) {
+                    lines.add("");
+                }
+
+                lines.set(key - 1, value);
+            } else {
+                lines.set(key - 1, value);
+            }
         });
 
         // Update the file.

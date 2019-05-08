@@ -28,9 +28,9 @@ public final class Main {
         final Config config = new Config();
         //config.debug();
         config.set("integer", "27017");
-        config.set("anotherSection.value", 3);
-        config.set("anotherSection.embeddedSection.value", 2);
-        config.set("anotherSection.embeddedSection.anotherEmbeddedSection.value", 1);
+        config.set("anotherSection.value2", 3);
+        config.set("anotherSection.embeddedSection.value2", 2);
+        config.set("anotherSection.embeddedSection.anotherEmbeddedSection.value2", 1);
         config.save();
 
         System.exit(0);

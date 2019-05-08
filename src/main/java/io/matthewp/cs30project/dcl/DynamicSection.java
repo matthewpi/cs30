@@ -1,7 +1,9 @@
 package io.matthewp.cs30project.dcl;
 
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NonNull;
+import lombok.Setter;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -14,8 +16,10 @@ import java.util.Map;
  */
 public final class DynamicSection {
     @Getter private final String key;
-    @Getter private final int lineNumber;
     @Getter private final Map<String, DynamicValue> values;
+    @Getter @Setter(AccessLevel.PROTECTED) private int lineNumber;
+    @Getter @Setter(AccessLevel.PROTECTED) private int endLineNumber;
+    @Getter @Setter(AccessLevel.PROTECTED) public boolean modified;
 
     public DynamicSection(@NonNull final String key) {
         this(key, 0);
@@ -30,8 +34,10 @@ public final class DynamicSection {
      */
     public DynamicSection(@NonNull final String key, final int lineNumber) {
         this.key = key;
-        this.lineNumber = lineNumber;
         this.values = new LinkedHashMap<>();
+        this.lineNumber = lineNumber;
+        this.endLineNumber = 0;
+        this.modified = false;
     }
 
     /**

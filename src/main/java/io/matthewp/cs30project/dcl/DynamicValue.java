@@ -1,6 +1,5 @@
 package io.matthewp.cs30project.dcl;
 
-import com.sun.javaws.exceptions.InvalidArgumentException;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NonNull;
@@ -15,7 +14,7 @@ import java.util.List;
  */
 public final class DynamicValue {
     @Getter(AccessLevel.PRIVATE) private Object value;
-    @Getter(AccessLevel.PUBLIC) private ValueType type;
+    @Getter private ValueType type;
     @Getter(AccessLevel.PROTECTED) @Setter private int lineNumber;
     @Getter @Setter(AccessLevel.PROTECTED) public boolean modified;
 
@@ -27,14 +26,18 @@ public final class DynamicValue {
      * @param value Value
      * @param type Value type
      */
-    DynamicValue(@NonNull final Object value, @NonNull final ValueType type) {
+    DynamicValue(@NonNull final Object value, final ValueType type) {
         this(value, type, 0);
     }
 
-    DynamicValue(@NonNull final Object value, @NonNull final ValueType type, final int lineNumber) {
+    DynamicValue(@NonNull final Object value, final ValueType type, final int lineNumber) {
         this.value = value;
         this.type = type;
         this.lineNumber = lineNumber;
+
+        if(this.getType() == null) {
+            this.updateType(value);
+        }
     }
 
     public String asString() {
@@ -119,7 +122,13 @@ public final class DynamicValue {
     }
     
     public void set(@NonNull final Object value) {
-        // We should probably update the type of this value.
+        this.updateType(value);
+
+        this.value = value;
+        this.modified = true;
+    }
+
+    private void updateType(@NonNull final Object value) {
         if(value instanceof String) {
             this.type = ValueType.STRING;
         } else if(value instanceof Boolean) {
@@ -131,13 +140,10 @@ public final class DynamicValue {
         } else if(value instanceof DynamicSection) {
             this.type = ValueType.SECTION;
         } else {
-            throw new IllegalArgumentException("Invalid object type passed to DynamicValue#set().");
+            throw new IllegalArgumentException("Invalid object type passed to DynamicValue#updateType().");
         }
 
         // TODO: Implement lists.
-
-        this.value = value;
-        this.modified = true;
     }
 
     @Override

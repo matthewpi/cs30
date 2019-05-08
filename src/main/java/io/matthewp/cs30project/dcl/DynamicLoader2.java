@@ -29,74 +29,121 @@ public final class DynamicLoader2 {
     @Getter private DynamicSection root;
     @Getter private Map<String, DynamicSection> sections;
 
+    /**
+     * DynamicLoader2(File)
+     *
+     * Creates a new {@link DynamicLoader} instance.
+     *
+     * @param file
+     */
     @SneakyThrows(IOException.class)
     DynamicLoader2(@NonNull final File file) {
         this.file = file;
         this.root = new DynamicSection("");
         this.sections = new LinkedHashMap<>();
 
+        // currentSection stores the section we are currently adding values to.
         DynamicSection currentSection = this.root;
 
         // Create a Buffered Reader so we can read from the file.
+        // TODO: Try using Files#readAllLines, might be faster or might produce nicer code.
         final BufferedReader br = new BufferedReader(new FileReader(file));
 
-        // Create a variable to store what line number we are on.
+        // lineNumber stores what line we are currently on.
         int lineNumber = 0;
 
         // Loop through every line in the file.
         for(String line = br.readLine(); line != null; line = br.readLine()) {
+            // Increment the line number.
             lineNumber++;
+            // Normalize the line read from the file.
             line = this.normalize(line);
-            System.out.println("Line: '" + line + "'");
 
+            // Debug logging.
+            if(DEBUG) {
+                System.out.println("[DCL] Line: '" + line + "'");
+            }
+
+            // Check if the line is empty.
             if(line.length() < 1) {
+                // Debug logging.
                 if(DEBUG) {
                     System.out.println("[DCL] Skipping line #" + lineNumber + " because it is empty.");
                 }
 
+                // Continue to the next line.
                 continue;
             }
 
             // Check if the line is a comment.
             if(this.isComment(line)) {
+                // Debug logging.
                 if(DEBUG) {
                     System.out.println("[DCL] Skipping line #" + lineNumber + " because it is a comment.");
                 }
 
+                // Continue to the next line.
                 continue;
             }
 
             // Check if the line is the start of a section.
             if(this.isSectionStart(line)) {
+                // Debug logging.
                 if(DEBUG) {
                     System.out.println("[DCL] New section on line #" + lineNumber + ".");
                 }
 
-                final String sectionName = ((currentSection.getKey().length() == 0) ? "" : currentSection.getKey() + ".") + line.substring(0, line.length() - 2);
-                currentSection = (this.getSections().get(sectionName) == null) ? new DynamicSection(sectionName, lineNumber) : this.getSections().get(sectionName);
-                this.getSections().putIfAbsent(sectionName, currentSection);
+                // sectionName gets the current section name and appends the new section name to it.
+                final String sectionName = (
+                        (currentSection.getKey().length() == 0) ? "" : currentSection.getKey() + "."
+                ) + line.substring(0, line.length() - 2);
+
+                // Check if our section map does not have a section with that name.
+                if(!this.getSections().containsKey(sectionName)) {
+                    // Create a new section.
+                    currentSection = new DynamicSection(sectionName, lineNumber);
+
+                    // Add the new section to the sections map.
+                    this.getSections().put(sectionName, currentSection);
+                } else {
+                    // Update the current section, the section already exists in the map.
+                    currentSection = this.getSections().get(sectionName);
+                }
+
+                // Continue to the next line.
                 continue;
             }
 
             // Check if the line is a section ending.
             if(currentSection != this.getRoot() && this.isSectionEnd(line)) {
+                // Debug logging.
                 if(DEBUG) {
                     System.out.println("[DCL] Section end on line #" + lineNumber + ".");
                 }
 
+                currentSection.setEndLineNumber(lineNumber);
+                System.out.println("[DCL] " + currentSection.getKey() + " - Set end line number to: " + lineNumber);
+
+                // Get the current section name.
                 String sectionName = currentSection.getKey();
+
+                // Check if the section name contains a "." character.
                 if(sectionName.contains(".")) {
+                    // Split the section at every "." character.
                     final String[] split = sectionName.split("\\.");
+
+                    // Remove the last . and anything following it.
+                    // TODO: sectionName.lastIndexOf(".") instead of replace last.
                     sectionName = DynamicUtils.replaceLast(sectionName, "." + split[split.length - 1], "");
+
+                    // Update our current section.
+                    currentSection = this.getSections().get(sectionName);
                 } else {
-                    sectionName = "";
+                    // Our section is not embedded within another section, set it to the root section.
+                    currentSection = this.getRoot();
                 }
 
-                if(sectionName.length() < 1) {
-                    currentSection = this.getRoot();
-                } else {
-                    currentSection = this.getSections().get(sectionName);
-                }
+                // Continue to the next line.
                 continue;
             }
 
@@ -108,6 +155,7 @@ public final class DynamicLoader2 {
     private void parseValue(@NonNull final DynamicSection section, @NonNull final String line, final int lineNumber) {
         String name = null;
         String value = null;
+
         for(int i = 0; i < line.length(); i++) {
             char character = line.charAt(i);
 
@@ -142,7 +190,10 @@ public final class DynamicLoader2 {
     }
 
     /**
+     * normalize(String)
+     *
      * Normalizes a string by removing prefixing and trailing white space.
+     *
      * @param input Input
      * @return Normalized input
      */
@@ -150,6 +201,14 @@ public final class DynamicLoader2 {
         return input.trim();
     }
 
+    /**
+     * isComment(String)
+     *
+     * Checks if a string is a comment.
+     *
+     * @param input Input
+     * @return True if the line is a comment, otherwise false.
+     */
     private boolean isComment(@NonNull final String input) {
         if(input.length() < 2) {
             return false;
@@ -159,6 +218,14 @@ public final class DynamicLoader2 {
         return substring.equals("//") || substring.equals("# ");
     }
 
+    /**
+     * isSectionStart(String)
+     *
+     * Checks if a string is the start of a section.
+     *
+     * @param input Input
+     * @return True if the line is a section start, otherwise false.
+     */
     private boolean isSectionStart(@NonNull final String input) {
         if(input.length() < 2) {
             return false;
@@ -167,10 +234,27 @@ public final class DynamicLoader2 {
         return input.substring(input.length() - 2).equals(" {");
     }
 
+    /**
+     * isSectionEnd(String)
+     *
+     * Checks if a string is the end of a section.
+     *
+     * @param input Input
+     * @return True if the line is a section ending, otherwise false.
+     */
     private boolean isSectionEnd(@NonNull final String input) {
         return input.charAt(0) == '}';
     }
 
+    /**
+     * getValue(String, int)
+     *
+     * Converts a string into a {@link DynamicValue} with a proper type.
+     *
+     * @param input Input
+     * @param lineNumber Line Number
+     * @return {@link DynamicValue} object.
+     */
     private DynamicValue getValue(@NonNull final String input, final int lineNumber) {
         if(input.charAt(0) == '"' && input.charAt(input.length() - 1) == '"') {
             return new DynamicValue(input.substring(1, input.length() - 1), DynamicValue.ValueType.STRING, lineNumber);
