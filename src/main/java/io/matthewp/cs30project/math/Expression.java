@@ -100,7 +100,7 @@ public final class Expression {
      *
      * Primary logic for our expression parsing algorithm, handles brackets, numbers, functions, and exponents.
      *
-     * @return double
+     * @return BigDecimal
      */
     private BigDecimal parseFactor() {
         // Skip over addition.
@@ -130,7 +130,7 @@ public final class Expression {
                 this.next();
             }
 
-            // Keep parsing the input as a double
+            // Keep parsing the input as a BigDecimal
             x = new BigDecimal(this.input.substring(startPosition, this.position));
         } else if(this.character >= 'a' && this.character <= 'z') {
             // Loop until we finish finding all consecutive "A-Z" characters.
