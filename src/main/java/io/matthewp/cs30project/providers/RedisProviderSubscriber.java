@@ -1,6 +1,5 @@
 package io.matthewp.cs30project.providers;
 
-import io.matthewp.cs30project.api.InputProvider;
 import io.matthewp.cs30project.math.Expression;
 import lombok.Getter;
 import lombok.NonNull;
@@ -11,11 +10,18 @@ import java.math.BigDecimal;
 /**
  * RedisProviderSubscriber
  *
- * ?
+ * This class is a Redis PubSub subscriber for the {@link RedisProvider}.
  */
 public final class RedisProviderSubscriber extends JedisPubSub {
     @Getter private final InputProvider provider;
 
+    /**
+     * RedisProviderSubscriber(InputProvider)
+     *
+     * Creates a new {@link RedisProviderSubscriber} object.
+     *
+     * @param provider Input provider
+     */
     public RedisProviderSubscriber(@NonNull final InputProvider provider) {
         this.provider = provider;
     }

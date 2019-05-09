@@ -1,6 +1,5 @@
 package io.matthewp.cs30project.providers;
 
-import io.matthewp.cs30project.api.InputProvider;
 import io.matthewp.cs30project.backend.RedisCredentials;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -14,7 +13,7 @@ import java.util.Scanner;
 /**
  * RedisProvider
  *
- * ?
+ * This class is an {@link InputProvider} for handling redis mathematical expression inputs.
  */
 public final class RedisProvider extends InputProvider {
     @Getter(AccessLevel.PRIVATE) private final JedisPool pool;

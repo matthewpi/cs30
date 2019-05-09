@@ -17,13 +17,13 @@ import java.util.*;
 /**
  * DynamicConfiguration
  *
- * ?
+ * This class provides the main functions and handlers required to use a ".dcl" configuration.
  */
 public abstract class DynamicConfiguration {
     public static final boolean DEBUG = true;
 
     @Getter(AccessLevel.PACKAGE) private final File file;
-    @Getter(AccessLevel.PACKAGE) private final DynamicLoader2 loader;
+    @Getter(AccessLevel.PACKAGE) private final DynamicLoader loader;
     @Getter(AccessLevel.PACKAGE) private final DynamicSection root;
     @Getter(AccessLevel.PACKAGE) private final Map<String, DynamicSection> sections;
 
@@ -68,7 +68,7 @@ public abstract class DynamicConfiguration {
         }
 
         this.file = file;
-        this.loader = new DynamicLoader2(file);
+        this.loader = new DynamicLoader(file);
         this.root = this.getLoader().getRoot();
         this.sections = this.getLoader().getSections();
     }
@@ -199,7 +199,9 @@ public abstract class DynamicConfiguration {
             }
 
             lineNumber = this.getTailLineNumber(section.getValues(), section.getLineNumber());
-            System.out.println("[DCL] set(): " + lineNumber);
+            if(DEBUG) {
+                System.out.println("[DCL] set(): " + lineNumber);
+            }
 
             // Increment the line number because it is an existing line, not the line we need to place the new value on.
             lineNumber++;
@@ -218,7 +220,9 @@ public abstract class DynamicConfiguration {
 
             this.getSections().forEach((sectName, sect) -> {
                 if(sect.getLineNumber() >= finalLine) {
-                    System.out.println(sectName + ": " + sect.getEndLineNumber());
+                    if(DEBUG) {
+                        System.out.println(sectName + ": " + sect.getEndLineNumber());
+                    }
                     sect.setModified(true);
                     sect.setLineNumber(sect.getLineNumber() + 1);
                     sect.setEndLineNumber(sect.getEndLineNumber() + 1);
@@ -377,7 +381,9 @@ public abstract class DynamicConfiguration {
                 replacements.put(section.getLineNumber() - 1, "");
                 replacements.put(section.getLineNumber(), indent1 + sectionName + " {");
                 replacements.put(section.getEndLineNumber(), indent1 + "}");
-                System.out.println("Section End: " + section.getEndLineNumber());
+                if(DEBUG) {
+                    System.out.println("Section End: " + section.getEndLineNumber());
+                }
                 section.setModified(false);
             }
 

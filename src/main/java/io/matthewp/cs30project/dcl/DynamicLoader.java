@@ -9,256 +9,272 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
  * DynamicLoader
  *
- * ?
+ * Handles the parsing of all ".dcl" configuration files.
+ *
+ * TODO: Implement variables (see {@link DynamicLoader})
+ * TODO: Implement string lists and integer lists (but use only [ and ] instead of [s and s], etc)
  */
 public final class DynamicLoader {
+    private static final boolean DEBUG = DynamicConfiguration.DEBUG;
     private static final Pattern UNICODE_PATTERN = Pattern.compile("\\\\u(\\p{XDigit}{4})");
 
+    @Getter private final File file;
     @Getter private DynamicSection root;
     @Getter private Map<String, DynamicSection> sections;
 
+    /**
+     * DynamicLoader(File)
+     *
+     * Creates a new {@link DynamicLoader} instance.
+     *
+     * @param file
+     */
     @SneakyThrows(IOException.class)
-    DynamicLoader(@NonNull final File file, final boolean debug) {
+    DynamicLoader(@NonNull final File file) {
+        this.file = file;
         this.root = new DynamicSection("");
         this.sections = new LinkedHashMap<>();
 
+        // currentSection stores the section we are currently adding values to.
         DynamicSection currentSection = this.root;
 
-        boolean inStringList = false;
-        String stringListKey = "";
-        List<String> stringList = new LinkedList<>();
-
-        boolean inIntegerList = false;
-        String integerListKey = "";
-        List<Integer> integerList = new LinkedList<>();
-
+        // Create a Buffered Reader so we can read from the file.
+        // TODO: Try using Files#readAllLines, might be faster or might produce nicer code.
         final BufferedReader br = new BufferedReader(new FileReader(file));
 
+        // lineNumber stores what line we are currently on.
+        int lineNumber = 0;
+
+        // Loop through every line in the file.
         for(String line = br.readLine(); line != null; line = br.readLine()) {
-            line = line.trim();
+            // Increment the line number.
+            lineNumber++;
+            // Normalize the line read from the file.
+            line = this.normalize(line);
 
-            if(line.equals("") || line.startsWith("#") || line.startsWith("//") || line.startsWith("/*") || line.startsWith(" *") || line.startsWith("*/"))
-                continue;
-
-            /*if(line.contains(" // ")) {
-                final String[] split = line.split(" // ");
-                line = DynamicUtils.replaceLast(line.replaceFirst(" // ", ""), split[1], "");
+            // Debug logging.
+            if(DEBUG) {
+                System.out.println("[DCL] Line: '" + line + "'");
             }
 
-            if(line.contains(" # ")) {
-                final String[] split = line.split(" # ");
-                line = DynamicUtils.replaceLast(line.replaceFirst(" # ", ""), split[1], "");
-            }*/
+            // Check if the line is empty.
+            if(line.length() < 1) {
+                // Debug logging.
+                if(DEBUG) {
+                    System.out.println("[DCL] Skipping line #" + lineNumber + " because it is empty.");
+                }
 
-            if(line.contains(" {")) {
-                final String prefix = (currentSection.getKey().length() == 0) ? "" : currentSection.getKey() + ".";
-                final String key = prefix + line.replace(" {", "");
-
-                currentSection = (this.getSections().get(key) == null) ? new DynamicSection(key) : this.getSections().get(key);
-                this.getSections().putIfAbsent(key, currentSection);
-
-                if(debug)
-                    System.out.println("Start Section: " + currentSection.getKey());
-
+                // Continue to the next line.
                 continue;
             }
 
-            if(line.equals("}")) {
-                String key = currentSection.getKey();
+            // Check if the line is a comment.
+            if(this.isComment(line)) {
+                // Debug logging.
+                if(DEBUG) {
+                    System.out.println("[DCL] Skipping line #" + lineNumber + " because it is a comment.");
+                }
 
-                if(debug)
-                    System.out.println("End Section: " + key);
+                // Continue to the next line.
+                continue;
+            }
 
-                if(key.contains(".")) {
-                    final String[] split = key.split("\\.");
-                    key = DynamicUtils.replaceLast(key, "." + split[split.length - 1], "");
+            // Check if the line is the start of a section.
+            if(this.isSectionStart(line)) {
+                // Debug logging.
+                if(DEBUG) {
+                    System.out.println("[DCL] New section on line #" + lineNumber + ".");
+                }
+
+                // sectionName gets the current section name and appends the new section name to it.
+                final String sectionName = (
+                        (currentSection.getKey().length() == 0) ? "" : currentSection.getKey() + "."
+                ) + line.substring(0, line.length() - 2);
+
+                // Check if our section map does not have a section with that name.
+                if(!this.getSections().containsKey(sectionName)) {
+                    // Create a new section.
+                    currentSection = new DynamicSection(sectionName, lineNumber);
+
+                    // Add the new section to the sections map.
+                    this.getSections().put(sectionName, currentSection);
                 } else {
-                    key = "";
+                    // Update the current section, the section already exists in the map.
+                    currentSection = this.getSections().get(sectionName);
                 }
 
-                if(key.equals(""))
-                    currentSection = this.root;
-                else
-                    currentSection = this.getSections().get(key);
-
+                // Continue to the next line.
                 continue;
             }
 
-            if(line.contains(" [s")) {
-                inStringList = true;
-                stringListKey = line.replace(" [s", "");
-
-                if(debug)
-                    System.out.println("String List: " + stringListKey);
-
-                continue;
-            }
-
-            if(line.equals("s]")) {
-                if(inStringList) {
-                    final DynamicValue value = new DynamicValue(stringList, DynamicValue.ValueType.STRING_LIST);
-                    currentSection.addValue(stringListKey, value);
+            // Check if the line is a section ending.
+            if(currentSection != this.getRoot() && this.isSectionEnd(line)) {
+                // Debug logging.
+                if(DEBUG) {
+                    System.out.println("[DCL] Section end on line #" + lineNumber + ".");
                 }
 
-                if(debug)
-                    System.out.println("End String List: " + stringListKey);
-
-                inStringList = false;
-                stringListKey = "";
-                stringList = new LinkedList<>();
-
-                continue;
-            }
-
-            if(line.contains(" [i")) {
-                inIntegerList = true;
-                integerListKey = line.replace(" [i", "").replaceAll("\\s+", "");
-
-                if(debug)
-                    System.out.println("Integer List: " + integerListKey);
-
-                continue;
-            }
-
-            if(line.equals("i]")) {
-                if(inIntegerList) {
-                    final DynamicValue value = new DynamicValue(integerList, DynamicValue.ValueType.INTEGER_LIST);
-                    currentSection.addValue(integerListKey, value);
+                currentSection.setEndLineNumber(lineNumber);
+                if(DEBUG) {
+                    System.out.println("[DCL] " + currentSection.getKey() + " - Set end line number to: " + lineNumber);
                 }
 
-                if(debug)
-                    System.out.println("End Integer List: " + integerListKey);
+                // Get the current section name.
+                String sectionName = currentSection.getKey();
 
-                inIntegerList = false;
-                integerListKey = "";
-                integerList = new LinkedList<>();
+                // Check if the section name contains a "." character.
+                if(sectionName.contains(".")) {
+                    // Split the section at every "." character.
+                    final String[] split = sectionName.split("\\.");
 
-                continue;
-            }
+                    // Remove the last . and anything following it.
+                    // TODO: sectionName.lastIndexOf(".") instead of replace last.
+                    sectionName = DynamicUtils.replaceLast(sectionName, "." + split[split.length - 1], "");
 
-            if(line.startsWith("- ")) {
-                if(!inStringList && !inIntegerList)
-                    continue;
-
-                String value = DynamicUtils.replaceLast(line.split("- ")[1].replaceFirst("\"", ""), "\"", "");
-
-                this.parseVariables(value);
-
-                if(debug)
-                    System.out.println("Value (List): " + value);
-
-                if(inStringList)
-                    stringList.add(value);
-
-                if(inIntegerList)
-                    if(DynamicUtils.isInteger(value))
-                        integerList.add(Integer.valueOf(value));
-
-                continue;
-            }
-
-            if(line.contains(": ")) {
-                final String[] split = line.split(": ");
-
-                if(split.length < 2)
-                    continue;
-
-                final DynamicValue value;
-                final String key = split[0];
-                final String val;
-
-                if(split.length > 2) {
-                    val = line.replaceFirst(key + ": ", "");
+                    // Update our current section.
+                    currentSection = this.getSections().get(sectionName);
                 } else {
-                    val = split[1];
+                    // Our section is not embedded within another section, set it to the root section.
+                    currentSection = this.getRoot();
                 }
 
-                value = this.create(val);
+                // Continue to the next line.
+                continue;
+            }
 
-                currentSection.addValue(key, value);
+            // After we have ran the rest of our checks we know the line is probably a value.
+            this.parseValue(currentSection, line, lineNumber);
+        }
+    }
 
-                if(debug)
-                    System.out.println("Value: " + key);
+    private void parseValue(@NonNull final DynamicSection section, @NonNull final String line, final int lineNumber) {
+        String name = null;
+        String value = null;
+
+        for(int i = 0; i < line.length(); i++) {
+            char character = line.charAt(i);
+
+            if(character != ':') {
+                continue;
+            }
+
+            if(line.charAt(i + 1) != ' ') {
+                if(DEBUG) {
+                    System.out.println("[DCL] Missing space after ':' in value on line #" + lineNumber + ".");
+                }
+                break;
+            }
+
+            name = line.substring(0, i);
+            value = line.substring(i + 2);
+            if(DEBUG) {
+                System.out.println("[DCL] Found value at line #" + lineNumber + " with name '" + name + "'.");
+                System.out.println("- " + value);
             }
         }
 
-        br.close();
-    }
-
-    private DynamicValue create(@NonNull final String input) {
-        String val = this.parseVariables(input);
-        final DynamicValue value;
-
-        if(DynamicUtils.isInteger(val)) {
-            value = new DynamicValue(Integer.valueOf(val), DynamicValue.ValueType.INTEGER);
-        } else if(DynamicUtils.isDouble(val)) {
-            value = new DynamicValue(Double.valueOf(val), DynamicValue.ValueType.DOUBLE);
-        } else {
-            if(val.equalsIgnoreCase("true") || val.equalsIgnoreCase("false"))
-                value = new DynamicValue(Boolean.valueOf(val), DynamicValue.ValueType.BOOLEAN);
-            else
-                value = new DynamicValue(DynamicUtils.replaceLast(val.replaceFirst("\"", ""), "\"", ""), DynamicValue.ValueType.STRING);
-        }
-
-        return value;
-    }
-
-    private String parseVariables(final String input) {
-        String val = input;
-
-        while(val.contains("${") && val.contains("}")) {
-            final String var = val.split("\\$\\{")[1].split("}")[0];
-            final DynamicValue varValue = this.getValue(var);
-
-            if(varValue != null)
-                val = val.replaceFirst("\\$\\{" + var + "}", varValue.value());
-            else
-                val = val.replaceFirst("\\$\\{" + var + "}", "");
-        }
-
-        final Matcher matcher = UNICODE_PATTERN.matcher(val);
-        final StringBuffer buffer = new StringBuffer(val.length());
-
-        while(matcher.find()) {
-            final String ch = String.valueOf((char) Integer.parseInt(matcher.group(1), 16));
-            matcher.appendReplacement(buffer, Matcher.quoteReplacement(ch));
-        }
-
-        matcher.appendTail(buffer);
-
-        return buffer.toString();
-    }
-
-    private DynamicValue getValue(@NonNull final String key) {
-        if(key.length() == 0)
-            return null;
-
-        if(key.contains(".")) {
-            final String[] split = key.split("\\.");
-
-            if(split.length >= 2) {
-                final String value = split[split.length - 1];
-                final String newKey = DynamicUtils.replaceLast(key, "." + value, "");
-                final DynamicSection section = this.getSections().get(newKey);
-
-                if(section != null) {
-                    final DynamicValue finalValue = section.get(value);
-
-                    if(finalValue != null)
-                        return finalValue;
-                }
+        // Check if the name is null, this also means there is no value.
+        if(name == null) {
+            if(DEBUG) {
+                System.out.println("[DCL] Failed to find name or value for line #" + lineNumber + ".");
             }
+
+            return;
         }
 
-        return this.root.get(key);
+        // Add the DynamicValue to the section.
+        section.addValue(name, this.getValue(value, lineNumber));
+    }
+
+    /**
+     * normalize(String)
+     *
+     * Normalizes a string by removing prefixing and trailing white space.
+     *
+     * @param input Input
+     * @return Normalized input
+     */
+    private String normalize(@NonNull final String input) {
+        return input.trim();
+    }
+
+    /**
+     * isComment(String)
+     *
+     * Checks if a string is a comment.
+     *
+     * @param input Input
+     * @return True if the line is a comment, otherwise false.
+     */
+    private boolean isComment(@NonNull final String input) {
+        if(input.length() < 2) {
+            return false;
+        }
+
+        final String substring = input.substring(0, 2);
+        return substring.equals("//") || substring.equals("# ");
+    }
+
+    /**
+     * isSectionStart(String)
+     *
+     * Checks if a string is the start of a section.
+     *
+     * @param input Input
+     * @return True if the line is a section start, otherwise false.
+     */
+    private boolean isSectionStart(@NonNull final String input) {
+        if(input.length() < 2) {
+            return false;
+        }
+
+        return input.substring(input.length() - 2).equals(" {");
+    }
+
+    /**
+     * isSectionEnd(String)
+     *
+     * Checks if a string is the end of a section.
+     *
+     * @param input Input
+     * @return True if the line is a section ending, otherwise false.
+     */
+    private boolean isSectionEnd(@NonNull final String input) {
+        return input.charAt(0) == '}';
+    }
+
+    /**
+     * getValue(String, int)
+     *
+     * Converts a string into a {@link DynamicValue} with a proper type.
+     *
+     * @param input Input
+     * @param lineNumber Line Number
+     * @return {@link DynamicValue} object.
+     */
+    private DynamicValue getValue(@NonNull final String input, final int lineNumber) {
+        if(input.charAt(0) == '"' && input.charAt(input.length() - 1) == '"') {
+            return new DynamicValue(input.substring(1, input.length() - 1), DynamicValue.ValueType.STRING, lineNumber);
+        }
+
+        if(input.equals("true") || input.equals("false")) {
+            return new DynamicValue(Boolean.valueOf(input), DynamicValue.ValueType.BOOLEAN, lineNumber);
+        }
+
+        if(DynamicUtils.isInteger(input)) {
+            return new DynamicValue(Integer.valueOf(input), DynamicValue.ValueType.INTEGER, lineNumber);
+        }
+
+        if(DynamicUtils.isDouble(input)) {
+            return new DynamicValue(Double.valueOf(input), DynamicValue.ValueType.DOUBLE, lineNumber);
+        }
+
+        return new DynamicValue(input, DynamicValue.ValueType.STRING, lineNumber);
     }
 }

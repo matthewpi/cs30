@@ -7,7 +7,7 @@ import java.io.IOException;
 /**
  * Main
  *
- * Handles starting and initialization of project components.
+ * Handles the starting and initialization of project components.
  */
 public final class Main {
 

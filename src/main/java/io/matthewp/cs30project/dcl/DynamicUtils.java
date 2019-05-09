@@ -7,7 +7,7 @@ import java.io.File;
 /**
  * DynamicUtils
  *
- * ?
+ * This class provides utility functions for the DCL library.
  */
 class DynamicUtils {
 

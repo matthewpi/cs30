@@ -12,7 +12,7 @@ import java.util.Map;
 /**
  * DynamicSection
  *
- * ?
+ * This class is used to store a configuration section and it's {@link DynamicValue}s.
  */
 public final class DynamicSection {
     @Getter private final String key;
@@ -162,24 +162,6 @@ public final class DynamicSection {
         }
 
         return value.asIntegerList();
-    }
-
-    /**
-     * getSection(String)
-     *
-     * Gets a {@link DynamicSection}.
-     *
-     * @param key Key
-     * @return Found section or null.
-     */
-    public DynamicSection getSection(@NonNull final String key) {
-        final DynamicValue value = this.get(key);
-
-        if(value == null) {
-            return null;
-        }
-
-        return value.asSection();
     }
 
     /**

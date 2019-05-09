@@ -157,11 +157,11 @@ public final class Expression {
                 case "round":
                     x = BigDecimal.valueOf(Math.round(x.doubleValue()));
                     break;
-                // Ceil function (Round Up), Ex: "round(1.2)" will return "2".
+                // Ceil function (Round Up), Ex: "ceil(1.2)" will return "2".
                 case "ceil":
                     x = BigDecimal.valueOf(Math.ceil(x.doubleValue()));
                     break;
-                // Ceil function (Round Up), Ex: "round(1.8)" will return "1".
+                // Floor function (Round Up), Ex: "floor(1.8)" will return "1".
                 case "floor":
                     x = BigDecimal.valueOf(Math.floor(x.doubleValue()));
                     break;
@@ -177,11 +177,11 @@ public final class Expression {
                 case "tan":
                     x = BigDecimal.valueOf(Math.tan(x.doubleValue()));
                     break;
-                    // Fibonacci Index
+                // Fibonacci Index
                 case "fib":
                     x = new BigDecimal(fib(x.intValue()));
                     break;
-                // Unimplemented function was used.
+                // An unimplemented function was used, throw an error.
                 default:
                     throw new RuntimeException("Invalid function \"" + functionName + "\" at position " + startPosition + ".");
             }

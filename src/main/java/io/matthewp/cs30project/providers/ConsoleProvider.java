@@ -1,6 +1,5 @@
 package io.matthewp.cs30project.providers;
 
-import io.matthewp.cs30project.api.InputProvider;
 import io.matthewp.cs30project.math.Expression;
 import lombok.AccessLevel;
 import lombok.Getter;

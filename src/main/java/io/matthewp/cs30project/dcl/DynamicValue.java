@@ -10,7 +10,7 @@ import java.util.List;
 /**
  * DynamicValue
  *
- * ?
+ * This class is used to store a configuration value.
  */
 public final class DynamicValue {
     @Getter(AccessLevel.PRIVATE) private Object value;
@@ -82,13 +82,6 @@ public final class DynamicValue {
         return (List<Integer>) this.getValue();
     }
 
-    public DynamicSection asSection() {
-        if(this.getType() != ValueType.SECTION)
-            return null;
-
-        return (DynamicSection) this.getValue();
-    }
-
     public String value() {
         if(this.getType() == ValueType.STRING) {
             return this.asString();
@@ -114,10 +107,6 @@ public final class DynamicValue {
             return String.valueOf(this.asIntegerList());
         }
 
-        if(this.getType() == ValueType.SECTION) {
-            return this.asSection().getKey();
-        }
-
         return null;
     }
     
@@ -137,8 +126,6 @@ public final class DynamicValue {
             this.type = ValueType.INTEGER;
         } else if(value instanceof Double) {
             this.type = ValueType.DOUBLE;
-        } else if(value instanceof DynamicSection) {
-            this.type = ValueType.SECTION;
         } else {
             throw new IllegalArgumentException("Invalid object type passed to DynamicValue#updateType().");
         }
@@ -157,7 +144,6 @@ public final class DynamicValue {
         INTEGER,
         DOUBLE,
         STRING_LIST,
-        INTEGER_LIST,
-        SECTION
+        INTEGER_LIST
     }
 }
