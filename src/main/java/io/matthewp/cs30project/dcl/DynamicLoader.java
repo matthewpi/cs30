@@ -33,7 +33,7 @@ public final class DynamicLoader {
      *
      * Creates a new {@link DynamicLoader} instance.
      *
-     * @param file
+     * @param file File
      */
     @SneakyThrows(IOException.class)
     DynamicLoader(@NonNull final File file) {
@@ -45,7 +45,6 @@ public final class DynamicLoader {
         DynamicSection currentSection = this.root;
 
         // Create a Buffered Reader so we can read from the file.
-        // TODO: Try using Files#readAllLines, might be faster or might produce nicer code.
         final BufferedReader br = new BufferedReader(new FileReader(file));
 
         // lineNumber stores what line we are currently on.
@@ -130,12 +129,9 @@ public final class DynamicLoader {
 
                 // Check if the section name contains a "." character.
                 if(sectionName.contains(".")) {
-                    // Split the section at every "." character.
-                    final String[] split = sectionName.split("\\.");
-
-                    // Remove the last . and anything following it.
-                    // TODO: sectionName.lastIndexOf(".") instead of replace last.
-                    sectionName = DynamicUtils.replaceLast(sectionName, "." + split[split.length - 1], "");
+                    // Remove everything on and after the last "." in the string (back up one section)
+                    // For example, "section.section" would become "section".
+                    sectionName = sectionName.substring(0, sectionName.lastIndexOf("."));
 
                     // Update our current section.
                     currentSection = this.getSections().get(sectionName);

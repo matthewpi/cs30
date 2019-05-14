@@ -179,10 +179,10 @@ public abstract class DynamicConfiguration {
         DynamicValue value = this.getValue(key);
 
         if(value == null) {
-            // TODO: Create new value add update all line numbers after it.
             int lineNumber;
             final DynamicSection section;
 
+            // Check if the key contains a ".". (This means that we are dealing with a section)
             if(key.contains(".")) {
                 section = this.getSection(key.substring(0, key.lastIndexOf(".")));
             } else {
@@ -259,8 +259,6 @@ public abstract class DynamicConfiguration {
     private int getTailLineNumber(@NonNull final Map<String, DynamicValue> map, final int sectionLineNumber) {
         int lineNumber = 0;
 
-        System.out.println("[DCL] Map Size: " + map.size());
-
         if(map.size() == 0) {
             return sectionLineNumber;
         }
@@ -317,31 +315,6 @@ public abstract class DynamicConfiguration {
         return this.getRoot().get(key);
     }
 
-    public void debug() {
-        this.getRoot().getValues().keySet().forEach(key -> System.out.println(key + ": " + this.getRoot().getValues().get(key).value()));
-
-        if(this.getRoot().getValues().size() != 0) {
-            System.out.println();
-        }
-
-        for(DynamicSection section : this.getSections().values()) {
-            if(section.getValues().size() == 0) {
-                continue;
-            }
-
-            final String indent = "    ";
-            final String sectionIndent = indent.replaceFirst(" {4}", "");
-            System.out.println(sectionIndent + section.getKey() + " {");
-
-            for(String valueKey : section.getValues().keySet()) {
-                System.out.println(indent + valueKey + ": " + section.getValues().get(valueKey).value());
-            }
-
-            System.out.println(sectionIndent + "}");
-            System.out.println();
-        }
-    }
-
     /**
      * save()
      *
@@ -369,8 +342,10 @@ public abstract class DynamicConfiguration {
 
         // Loop through all configuration sections.
         this.getSections().forEach((sectionName, section) -> {
+            // Check if the section has been modified.
             if(section.isModified()) {
-                final String indent1 = String.join(
+                // Get the indent for the section. (This is a fancy way of repeating a string, there is probably a better way to do this.)
+                final String indent = String.join(
                         "",
                         Collections.nCopies(
                                 (sectionName.length() - sectionName.replace(".", "").length()),
@@ -378,15 +353,16 @@ public abstract class DynamicConfiguration {
                         )
                 );
 
+                // Add the section to the replacements map.
                 replacements.put(section.getLineNumber() - 1, "");
-                replacements.put(section.getLineNumber(), indent1 + sectionName + " {");
-                replacements.put(section.getEndLineNumber(), indent1 + "}");
-                if(DEBUG) {
-                    System.out.println("Section End: " + section.getEndLineNumber());
-                }
+                replacements.put(section.getLineNumber(), indent + sectionName + " {");
+                replacements.put(section.getEndLineNumber(), indent + "}");
+
+                // Set the section's modified state to false.
                 section.setModified(false);
             }
 
+            // Loop over the values in the section.
             section.getValues().forEach((key, value) -> {
                 // Skip over values that have not been modified.
                 if(!value.isModified()) {
@@ -420,6 +396,7 @@ public abstract class DynamicConfiguration {
 
         // Check if there are no replacements.
         if(replacements.size() < 1) {
+            // Debug logging.
             if(DEBUG) {
                 System.out.println("[DCL] Skipping over file save because no values were modified.");
             }

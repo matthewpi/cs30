@@ -41,7 +41,7 @@ public final class Expression {
     /**
      * Expression(String)
      *
-     * Creates a new Expression object.
+     * Creates a new {@link Expression} instance
      */
     public Expression(final String input) {
         this.input = input;
@@ -54,7 +54,7 @@ public final class Expression {
     /**
      * BigDecimal result()
      *
-     * @return Cached result or result from parse().
+     * @return Cached result or result from parse()
      */
     public BigDecimal result() {
         // Check if we have parsed the input already.
@@ -62,6 +62,7 @@ public final class Expression {
             return this.getResult();
         }
 
+        // Run the parser and return the result.
         return this.parse();
     }
 
@@ -70,7 +71,7 @@ public final class Expression {
      *
      * Parses the mathematical equation and returns the result.
      *
-     * @return Expression result.
+     * @return Expression result
      */
     private BigDecimal parse() {
         // Check if we have already parsed the input.
@@ -92,6 +93,7 @@ public final class Expression {
         // Update the parsed variable so we can pull the result again later.
         this.parsed = true;
 
+        // Return the result.
         return this.getResult();
     }
 
@@ -195,6 +197,7 @@ public final class Expression {
             x = BigDecimal.valueOf(Math.pow(x.doubleValue(), this.parseFactor().doubleValue()));
         }
 
+        // Return the value of x so we can move to the next steps.
         return x;
     }
 
@@ -203,7 +206,7 @@ public final class Expression {
      *
      * Parses a mathematical expression and handles addition and subtraction.
      *
-     * @return double
+     * @return BigDecimal
      */
     private BigDecimal parseExpression() {
         BigDecimal x = this.parseTerm();
@@ -228,7 +231,7 @@ public final class Expression {
      *
      * Parses a mathematical term and handles multiplication and division.
      *
-     * @return double
+     * @return BigDecimal
      */
     private BigDecimal parseTerm() {
         BigDecimal x = this.parseFactor();
@@ -251,7 +254,7 @@ public final class Expression {
     /**
      * void next()
      *
-     * Updates the `this.character` variable with the next character in the `this.input` variable.
+     * Updates the {@link Expression#character} variable with the next valid character from the {@link Expression#input} string.
      */
     private void next() {
         // Check if the next position is less than the input's length.
@@ -283,6 +286,7 @@ public final class Expression {
             return true;
         }
 
+        // The next character is not the one we wanted.
         return false;
     }
 

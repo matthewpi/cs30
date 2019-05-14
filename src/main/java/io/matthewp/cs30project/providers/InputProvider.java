@@ -26,18 +26,6 @@ public abstract class InputProvider {
     public abstract void clean();
 
     /**
-     * boolean isCommand(String)
-     *
-     * Checks if a string is a command.
-     *
-     * @param input String to check.
-     * @return True if string is a command, otherwise false.
-     */
-    public boolean isCommand(final String input) {
-        return input.charAt(0) == '.';
-    }
-
-    /**
      * boolean isMathExpression(String)
      *
      * Checks if a string is a mathematical equation.
@@ -82,7 +70,8 @@ public abstract class InputProvider {
                 endIndex++;
             }
 
-            // Check if the FUNCTIONS arraylist contains the matched function.
+            // Check if the FUNCTIONS list contains the function name in the input.
+            // TODO: Custom search algorithm.
             if(Expression.FUNCTIONS.contains(input.substring(0, endIndex))) {
                 return true;
             }
