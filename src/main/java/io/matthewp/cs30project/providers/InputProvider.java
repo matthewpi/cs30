@@ -70,9 +70,11 @@ public abstract class InputProvider {
                 endIndex++;
             }
 
-            // Check if the FUNCTIONS list contains the function name in the input.
-            // TODO: Custom search algorithm.
-            if(Expression.FUNCTIONS.contains(input.substring(0, endIndex))) {
+            // Get the name of the function.
+            final String functionName = input.substring(0, endIndex);
+
+            // Check if the function name is an actual function.
+            if(Expression.isFunction(functionName)) {
                 return true;
             }
         }

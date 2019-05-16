@@ -2,6 +2,7 @@ package io.matthewp.cs30project.math;
 
 import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NonNull;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -44,7 +45,7 @@ public final class Expression {
      * Creates a new {@link Expression} instance
      */
     public Expression(final String input) {
-        this.input = input;
+        this.input = input.replaceAll("x", "*");
         this.position = -1;
         this.character = -1;
         this.result = null;
@@ -141,7 +142,12 @@ public final class Expression {
             }
 
             // Get the function name.
-            String functionName = this.getInput().substring(startPosition, this.getPosition());
+            final String functionName = this.getInput().substring(startPosition, this.getPosition());
+
+            // Check if the function name is not an actual function.
+            if(!Expression.isFunction(functionName)) {
+                throw new RuntimeException("Invalid function \"" + functionName + "\" at position " + startPosition + ".");
+            }
 
             // Parse the inside of the function.
             x = this.parseFactor();
@@ -181,6 +187,12 @@ public final class Expression {
                     break;
                 // Fibonacci Index
                 case "fib":
+                    // Pretty self explanatory, skip large numbers that will probably cause a StackOverflow.
+                    if(x.intValue() > 6144) {
+                        System.out.println("fib(): value will potentially cause a StackOverflow exception, skipping to prevent potential crashing.");
+                        break;
+                    }
+
                     x = new BigDecimal(fib(x.intValue()));
                     break;
                 // An unimplemented function was used, throw an error.
@@ -325,5 +337,29 @@ public final class Expression {
         }
 
         return numberOne.add(numberTwo);
+    }
+
+    /**
+     * isFunction(String)
+     *
+     * Checks if the parameter is a valid function name.
+     *
+     * @param functionName Function Name to check.
+     * @return True if the function name exists, otherwise false.
+     */
+    public static boolean isFunction(@NonNull final String functionName) {
+        // Loop through the list of functions.
+        for(int i = 0; i < Expression.FUNCTIONS.size(); i++) {
+            // Check if the function name in the array doesn't match the one in the function parameters.
+            if(!Expression.FUNCTIONS.get(i).equals(functionName)) {
+                // Go to the next function name.
+                continue;
+            }
+
+            // Function name is in the array, return true.
+            return true;
+        }
+
+        return false;
     }
 }
