@@ -32,6 +32,21 @@ public final class ConsoleProvider extends InputProvider {
      */
     @Override
     public void start() {
+        System.out.println("--------------------------------------------------------------------------");
+        System.out.println("Expression Parser vEVERYTHING-IS-FINE/develop");
+        System.out.println("Created By: Matthew Penner <me@matthewp.io>");
+        System.out.println();
+        System.out.println("Enter a mathematical expression and we will print the result.");
+        System.out.println("Be careful, if you put too big of a number you might crash the parser.. :)");
+        System.out.println();
+        System.out.println("Examples:");
+        System.out.println("  - User inputs '2+2', parser outputs '4'");
+        System.out.println("  - User inputs '5*5', parser outputs '25'");
+        System.out.println("  - User inputs '8x8', parser outputs '64'");
+        System.out.println();
+        System.out.println("To exit type 'quit', 'exit', or use 'Ctrl^C'.");
+        System.out.println("--------------------------------------------------------------------------");
+
         String input;
         while(true) {
             input = this.getKeyboard().nextLine().trim();
@@ -43,17 +58,19 @@ public final class ConsoleProvider extends InputProvider {
             }
 
             // Check if the input is a mathematical expression
-            if(this.isMathExpression(input)) {
-                System.out.println("Handling input as a math expression.");
+            if(Expression.isExpression(input)) {
+                try {
+                    // Create a new Expression object using the input string.
+                    final Expression expression = new Expression(input);
 
-                // Create a new Expression object using the input string.
-                final Expression expression = new Expression(input);
+                    // Get the expression's result.
+                    final BigDecimal result = expression.result();
 
-                // Get the expression's result.
-                final BigDecimal result = expression.result();
-
-                // Print the result.
-                System.out.println(result);
+                    // Print the result.
+                    System.out.println(result);
+                } catch(final Exception ex) {
+                    ex.printStackTrace();
+                }
             }
         }
     }

@@ -45,7 +45,7 @@ public final class RedisProviderSubscriber extends JedisPubSub {
         final String input = message.replaceFirst("request:", "");
 
         // Check if the input is a mathematical expression
-        if(this.getProvider().isMathExpression(input)) {
+        if(Expression.isExpression(input)) {
             // Create a new Expression object using the input string.
             final Expression expression = new Expression(input);
 

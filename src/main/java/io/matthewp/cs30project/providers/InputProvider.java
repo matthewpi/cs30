@@ -1,7 +1,5 @@
 package io.matthewp.cs30project.providers;
 
-import io.matthewp.cs30project.math.Expression;
-
 /**
  * InputProvider
  *
@@ -24,61 +22,4 @@ public abstract class InputProvider {
      * before the application exits.
      */
     public abstract void clean();
-
-    /**
-     * boolean isMathExpression(String)
-     *
-     * Checks if a string is a mathematical equation.
-     *
-     * @param input String to check.
-     * @return True if string is a command, otherwise false.
-     */
-    public boolean isMathExpression(final String input) {
-        char character = input.charAt(0);
-
-        if(character == '(' || (character >= '0' && character <= '9')) {
-            return true;
-        }
-
-        // Get the input length.
-        int inputLength = input.length();
-
-        // Check if the input length is greater than 2.
-        if(inputLength > 2) {
-            int endIndex = 0;
-
-            for(int i = 0; i < 5; i++) {
-                // Check if the loop index has exceeded the input's length.
-                if(i > inputLength - 1) {
-                    break;
-                }
-
-                // Get the character in the input at the loop's index.
-                character = input.charAt(i);
-
-                // Check if the character is a bracket
-                if(character == '(') {
-                    break;
-                }
-
-                // Check if the character is not "A-Z"
-                if(!(character >= 'a' && character <= 'z')) {
-                    return false;
-                }
-
-                // Increment the endIndex variable.
-                endIndex++;
-            }
-
-            // Get the name of the function.
-            final String functionName = input.substring(0, endIndex);
-
-            // Check if the function name is an actual function.
-            if(Expression.isFunction(functionName)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
 }
